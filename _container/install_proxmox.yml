@@ -1,0 +1,51 @@
+---
+- name: Adapt apt sources for Proxmox
+  ansible.builtin.template:
+    src: pve-install-repo.list.j2
+    dest: "/etc/apt/sources.list.d/pve-install-repo.list"
+    owner: root
+    group: root
+    mode: "0o644"
+
+- name: Add apt key
+  ansible.builtin.apt_key:
+    url: https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg
+
+- name: Update apt and fully upgrade system
+  ansible.builtin.apt:
+    upgrade: full
+    autoclean: true
+    autoremove: true
+    update_cache: true
+
+- name: Install Proxmox VE Kernel
+  ansible.builtin.apt:
+    name: proxmox-default-kernel
+
+# - name: Reboot system
+#   ansible.builtin.reboot:
+#     reboot_timeout: 900
+
+- name: Remove systemd-timesyncd
+  ansible.builtin.apt:
+    name: systemd-timesyncd
+    state: absent
+    purge: true
+
+- name: Install Proxmox VE packages
+  ansible.builtin.apt:
+    name: 
+      - proxmox-ve
+      - postfix
+      - open-iscsi
+      - chrony
+
+- name: Remove Debian Kernels
+  ansible.builtin.apt:
+    name:
+      - linux-image-amd64
+      - 'linux-image-6.1*'
+    state: absent
+
+- name: Update grub
+  ansible.builtin.command: update-grub
