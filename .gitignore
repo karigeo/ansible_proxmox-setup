@@ -1,0 +1,6 @@
+vars/secrets/*.yml
+secrets/*.yml
+playbook.yml
+inventory.yml
+ansible.cfg
+.vscode/

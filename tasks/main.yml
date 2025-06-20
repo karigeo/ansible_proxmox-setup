@@ -1,0 +1,82 @@
+---
+- name: Add Proxmox VE repository to apt sources
+  ansible.builtin.template:
+    src: pve-install-repo.list.j2
+    dest: "/etc/apt/sources.list.d/pve-install-repo.list"
+    owner: root
+    group: root
+    mode: "0o644"
+
+- name: Add apt key
+  ansible.builtin.apt_key:
+    url: https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg
+
+- name: Update apt and fully upgrade system
+  ansible.builtin.apt:
+    upgrade: full
+    autoclean: true
+    autoremove: true
+    update_cache: true
+
+- name: Install Proxmox VE Kernel
+  ansible.builtin.apt:
+    name: proxmox-default-kernel
+
+- name: Reboot system
+  ansible.builtin.reboot:
+    reboot_timeout: 900
+
+- name: Remove systemd-timesyncd
+  ansible.builtin.apt:
+    name: systemd-timesyncd
+    state: absent
+    purge: true
+
+- name: Install Proxmox VE packages
+  ansible.builtin.apt:
+    name:
+      - proxmox-ve
+      - postfix
+      - open-iscsi
+      - chrony
+
+- name: Remove Debian Kernels
+  ansible.builtin.apt:
+    name:
+      - linux-image-amd64
+      - 'linux-image-6.1*'
+    state: absent
+
+- name: Create or edit storage.cfg
+  when: 
+    - define_storage_locations | default(false)
+  block:
+  
+    - name: Check if /etc/pve/storage.cfg already exists
+      ansible.builtin.stat:
+        path: /etc/pve/storage.cfg
+      register: storage
+
+    - name: Create / Touch storage.cfg if it does not exist already
+      shell: "touch /etc/pve/storage.cfg"
+      when:
+        - not storage.stat.exists
+
+    - name: Debug print storage.cfg configuration
+      ansible.builtin.debug:
+        msg: "{{ storage_config }}"
+      when:
+        - debug | default(false)
+
+    - name: Populate storage.cfg
+      ansible.builtin.blockinfile:
+        append_newline: true
+        prepend_newline: true
+        backup: true
+        block: "{{ lookup('template', 'storage.cfg.j2') }}"
+        create: true
+        insertafter: EOF
+        marker: "# {mark} ANSIBLE MANAGED BLOCK FOR {{ item.name }}"
+        path: /etc/pve/storage.cfg
+        state: present
+      loop: "{{ storage_config }}"

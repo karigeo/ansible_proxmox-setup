@@ -1,0 +1,19 @@
+---
+debug: false
+define_storage_locations: true
+storage_config:
+  - name: local
+    type: dir
+    path: /var/lib/vz
+    content: iso,vztmpl,backup
+    shared: 0
+  - name: local-lvm
+    type: lvmthin
+    thinpool: data
+    vgname: pve
+    content: rootdir,images
+  - name: local-zfs
+    type: zfspool
+    pool: rpool/data
+    sparse: ""
+    content: images,rootdir

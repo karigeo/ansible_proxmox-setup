@@ -1,0 +1,4 @@
+{{item.type}}: {{item.name}}
+{% for key, value in item.items() if not key=='name' and not key=='type' %}
+    {{key}} {{value}}
+{% endfor %}
